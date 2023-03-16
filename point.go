@@ -124,13 +124,9 @@ func (lonDist lonDegreeDistance) get(lat float64) Meters {
 	}
 }
 
-var (
-	lonLength = lonDegreeDistance{}
-)
-
 // Calculates approximate distance between two points using euclidian distance. The assumption here
 // is that the points are relatively close to each other.
-func approximateSquareDistance(p1, p2 Point) Meters {
+func approximateSquareDistance(lonLength lonDegreeDistance, p1, p2 Point) Meters {
 	avgLat := (p1.Lat() + p2.Lat()) / 2.0
 
 	latLen := math.Abs(p1.Lat()-p2.Lat()) * float64(latDegreeLength)

@@ -12,6 +12,7 @@ import (
 type PointsIndex struct {
 	index           *geoIndex
 	currentPosition map[string]Point
+	lonLength       lonDegreeDistance
 }
 
 // NewPointsIndex creates new PointsIndex that maintains the points in each cell.
@@ -20,7 +21,7 @@ func NewPointsIndex(resolution Meters) *PointsIndex {
 		return newSet()
 	}
 
-	return &PointsIndex{newGeoIndex(resolution, newSet), make(map[string]Point)}
+	return &PointsIndex{newGeoIndex(resolution, newSet), make(map[string]Point), lonDegreeDistance{}}
 }
 
 // NewExpiringPointsIndex creates new PointIndex that expires the points in each cell after expiration minutes.
@@ -38,7 +39,7 @@ func NewExpiringPointsIndex(resolution Meters, expiration Minutes) *PointsIndex 
 		return set
 	}
 
-	return &PointsIndex{newGeoIndex(resolution, newExpiringSet), currentPosition}
+	return &PointsIndex{newGeoIndex(resolution, newExpiringSet), currentPosition, lonDegreeDistance{}}
 }
 
 func (pi *PointsIndex) Clone() *PointsIndex {
@@ -130,8 +131,9 @@ func (points *PointsIndex) Range(topLeft Point, bottomRight Point) []Point {
 }
 
 type sortedPoints struct {
-	points []Point
-	point  Point
+	points    []Point
+	point     Point
+	lonLength lonDegreeDistance
 }
 
 func (p *sortedPoints) Len() int {
@@ -143,7 +145,7 @@ func (p *sortedPoints) Swap(i, j int) {
 }
 
 func (p *sortedPoints) Less(i, j int) bool {
-	return approximateSquareDistance(p.points[i], p.point) < approximateSquareDistance(p.points[j], p.point)
+	return approximateSquareDistance(p.lonLength, p.points[i], p.point) < approximateSquareDistance(p.lonLength, p.points[j], p.point)
 }
 
 func min(a, b int) int {
@@ -181,7 +183,7 @@ func (points *PointsIndex) KNearest(point Point, k int, maxDistance Meters, acce
 		}
 	}
 
-	sortedPoints := &sortedPoints{nearbyPoints, point}
+	sortedPoints := &sortedPoints{nearbyPoints, point, points.lonLength}
 	sort.Sort(sortedPoints)
 
 	k = min(k, len(sortedPoints.points))
